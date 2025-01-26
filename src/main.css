@@ -1,0 +1,303 @@
+.wrapper {
+  --wrap-width: 460px;
+  max-width: var(--wrap-width);
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 1fr auto;
+}
+
+[data-control="1"] .sudoku-cell.number-1,
+[data-control="2"] .sudoku-cell.number-2,
+[data-control="3"] .sudoku-cell.number-3,
+[data-control="4"] .sudoku-cell.number-4,
+[data-control="5"] .sudoku-cell.number-5,
+[data-control="6"] .sudoku-cell.number-6,
+[data-control="7"] .sudoku-cell.number-7,
+[data-control="8"] .sudoku-cell.number-8,
+[data-control="9"] .sudoku-cell.number-9 {
+  background: #fff7cc;
+}
+
+.start-box {
+  display: grid;
+  grid-template-columns: 36px auto 36px;
+  height: 36px;
+  line-height: 36px;
+  grid-column: 1/3;
+  background: #35506f;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.start-box button {
+  margin: 0;
+  border: 0;
+  padding: 0;
+  background: #35506f;
+  color: #ffffff;
+  font: inherit;
+  user-select: none;
+}
+
+.start-box button:hover {
+  background: #0077ff80;
+}
+
+.start-box button:active {
+  background: #0077ff;
+  color: #ffffff;
+}
+
+.start-box button:disabled,
+.start-box button:disabled:hover,
+.start-box button:disabled:active {
+  background: #35506f;
+  color: #ffffff80;
+}
+
+.num-clues-box,
+.time-box {
+  line-height: 36px;
+}
+
+.restart-button {
+  display: inline;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  background: none;
+  color: #0077ff;
+  padding: 0 0.25em;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.restart-button:active {
+  color: #35506f;
+}
+
+.sudoku-box {
+  grid-column: 1/3;
+  max-width: 100%;
+  aspect-ratio: 1/1;
+  position: relative;
+  border-radius: 3px;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.sudoku-table {
+  width: 100%;
+  height: 100%;
+  border-collapse: collapse;
+  text-align: center;
+}
+
+.sudoku-number-box {
+  border: 1px solid #35506f;
+  padding: 0;
+  width: 11.1111%;
+  position: relative;
+  background-color: #ffffff;
+}
+
+.note-box {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: grid;
+  grid-template: repeat(3, 1fr) / repeat(3, 1fr);
+  user-select: none;
+  color: transparent;
+  overflow: hidden;
+}
+
+.note-box sub {
+  font-size: calc(calc(min(var(--wrap-width), 100vw) - 20px) * 0.028);
+  line-height: 1;
+  position: relative;
+  top: 3px;
+}
+
+.note {
+  color: #aaa;
+}
+
+.note-1::before {
+  content: "1";
+}
+.note-2::before {
+  content: "2";
+}
+.note-3::before {
+  content: "3";
+}
+.note-4::before {
+  content: "4";
+}
+.note-5::before {
+  content: "5";
+}
+.note-6::before {
+  content: "6";
+}
+.note-7::before {
+  content: "7";
+}
+.note-8::before {
+  content: "8";
+}
+.note-9::before {
+  content: "9";
+}
+
+/* tr:where(:nth-child(6n + 1), :nth-child(6n + 2), :nth-child(6n + 3))
+  .sudoku-number-box:where(
+    :nth-child(6n + 4),
+    :nth-child(6n + 5),
+    :nth-child(6n + 6)
+  ),
+tr:where(:nth-child(6n + 4), :nth-child(6n + 5), :nth-child(6n + 6))
+  .sudoku-number-box:where(
+    :nth-child(6n + 1),
+    :nth-child(6n + 2),
+    :nth-child(6n + 3)
+  ) {
+  background-color: #f5f5f5;
+} */
+
+.sudoku-cell {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  border: 0;
+  padding: 0;
+  font-size: calc(calc(min(var(--wrap-width), 100vw) - 20px) * 0.06);
+  touch-action: none;
+  line-height: 1;
+  position: relative;
+  user-select: none;
+  color: #0077ff;
+}
+
+.sudoku-cell--clue {
+  color: #35506f;
+}
+
+.sudoku-cell.number-1,
+.sudoku-cell.number-2,
+.sudoku-cell.number-3,
+.sudoku-cell.number-4,
+.sudoku-cell.number-5,
+.sudoku-cell.number-6,
+.sudoku-cell.number-7,
+.sudoku-cell.number-8,
+.sudoku-cell.number-9 {
+  background-color: inherit;
+}
+
+.sudoku-number-box.drag,
+.sudoku-number-box:hover {
+  background-color: #f0f0f0;
+}
+
+.sudoku-number-box:active {
+  background-color: #e5f2ff;
+}
+
+.sudoku-block-borders {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border-collapse: collapse;
+  pointer-events: none;
+}
+
+.sudoku-block-borders,
+.sudoku-block-border {
+  border: 3px solid #35506f;
+}
+
+.control-box {
+  grid-column: 1/3;
+  margin-top: 1em;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  border-radius: 3px;
+  overflow: hidden;
+  box-sizing: border-box;
+  color: #ffffff;
+  background: #35506f;
+  gap: 1px;
+  border: 1px solid #35506f;
+}
+
+.control-button {
+  height: 36px;
+  text-align: center;
+  user-select: none;
+  touch-action: none;
+  color: #ffffff;
+  background: #35506f;
+  position: relative;
+  box-sizing: border-box;
+  margin: 0;
+  border: 0;
+  padding: 0;
+  font-family: inherit;
+  font-size: 13.3333px;
+  line-height: 36px;
+}
+
+.control-button--number {
+  font-size: 20px;
+}
+
+.control-button input {
+  display: none;
+}
+
+.control-button:hover {
+  background-color: #0077ff80;
+}
+
+.control-button--active,
+.control-button:active,
+.note-mode .control-button--number:has(:checked:active),
+.note-mode .control-button--clear:has(:checked:active),
+.control-button:has(:active) {
+  background-color: #0077ff;
+  color: #ffffff;
+}
+
+.control-button:has(:checked:not(:active)) {
+  background-color: #ffd800;
+  color: #35506f;
+  transition:
+    background-color 200ms linear,
+    color 200ms linear;
+}
+
+.note-mode .control-button--clear:has(:checked),
+.note-mode .control-button--number:has(:checked) {
+  background-color: #ffffff;
+  color: #35506f;
+}
+
+.note-mode .control-button--clear:has(:checked)::after,
+.note-mode .control-button--number:has(:checked)::after {
+  content: "Note";
+  font-size: 13.3333px;
+  line-height: 1;
+  position: absolute;
+  top: 4px;
+  left: 4px;
+}
