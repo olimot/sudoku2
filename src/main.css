@@ -18,6 +18,18 @@
   background: #fff7cc;
 }
 
+[data-control="1"] .sudoku-cell.number-1.error,
+[data-control="2"] .sudoku-cell.number-2.error,
+[data-control="3"] .sudoku-cell.number-3.error,
+[data-control="4"] .sudoku-cell.number-4.error,
+[data-control="5"] .sudoku-cell.number-5.error,
+[data-control="6"] .sudoku-cell.number-6.error,
+[data-control="7"] .sudoku-cell.number-7.error,
+[data-control="8"] .sudoku-cell.number-8.error,
+[data-control="9"] .sudoku-cell.number-9.error {
+  background: #ffe5e5;
+}
+
 .start-box {
   display: grid;
   grid-template-columns: 36px auto 36px;
@@ -207,6 +219,7 @@ tr:where(:nth-child(6n + 4), :nth-child(6n + 5), :nth-child(6n + 6))
   background-color: #f0f0f0;
 }
 
+.sudoku-number-box.active,
 .sudoku-number-box:active {
   background-color: #e5f2ff;
 }
@@ -269,7 +282,7 @@ tr:where(:nth-child(6n + 4), :nth-child(6n + 5), :nth-child(6n + 6))
   background-color: #0077ff80;
 }
 
-.control-button--active,
+.control-button.active,
 .control-button:active,
 .note-mode .control-button--number:has(:checked:active),
 .note-mode .control-button--clear:has(:checked:active),

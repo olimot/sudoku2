@@ -1,39 +1,26 @@
 import "./main.css";
-import { solve, dig } from "./sudoku";
+import { solve, dig, relLUT } from "./sudoku";
 
-let quiz = new Uint32Array(81);
-let minClues = 81;
-let i = 0;
 function generate() {
-  const theQuiz = i++ ? new Uint32Array(81) : quiz;
-  solve(theQuiz);
-  dig(theQuiz, 36);
-  let nClues = 0;
-  for (let i = 0; i < 81; i++) if (theQuiz[i]) nClues++;
-  if (nClues >= minClues) return;
-  minClues = nClues;
-  quiz = theQuiz;
-}
-
-for (let j = 0; j < 100; j++) generate();
-
-let out = "";
-let clues = 0;
-for (let i = 0; i < 81; i++) {
-  const value = quiz[i] ? Math.log2(quiz[i]) + 1 : " ";
-  if (quiz[i]) clues++;
-  if (i % 9 === 8) {
-    out += `${value}\n`;
-    const row = Math.trunc(i / 9);
-    if (row % 9 !== 8 && row % 3 === 2) out += `------+-------+------\n`;
-  } else {
-    out += `${value} `;
-    if (i % 3 === 2) out += "| ";
+  let quiz = new Uint32Array(81);
+  let minClues = 81;
+  let i = 0;
+  for (let j = 0; j < 100; j++) {
+    const theQuiz = i++ ? new Uint32Array(81) : quiz;
+    solve(theQuiz);
+    dig(theQuiz, 0);
+    let nClues = 0;
+    for (let i = 0; i < 81; i++) if (theQuiz[i]) nClues++;
+    if (nClues >= minClues) continue;
+    minClues = nClues;
+    quiz = theQuiz;
   }
+  const t = Math.round(performance.now());
+  console.log(
+    `# of clues: ${minClues}, # of iterations: ${i}, elapsed: ${t} ms`,
+  );
+  return quiz;
 }
-
-const t = Math.round(performance.now());
-console.log(out, `# of clues: ${clues}, # of iter: ${i}, elapsed: ${t} ms`);
 
 const wrapper = document.body.appendChild(document.createElement("div"));
 wrapper.className = "wrapper";
@@ -59,7 +46,6 @@ harderButton.textContent = "▶";
 
 const numCluesBox = wrapper.appendChild(document.createElement("div"));
 numCluesBox.className = "num-clues-box";
-numCluesBox.textContent = `${minClues} clues`;
 
 const timeBox = wrapper.appendChild(document.createElement("div"));
 timeBox.className = "time-box";
@@ -82,19 +68,19 @@ for (let i = 0; i < 9; i++) {
 
 const sudokuTable = sudokuBox.appendChild(document.createElement("table"));
 sudokuTable.className = "sudoku-table";
+const cells: HTMLElement[] = [];
 for (let i = 0; i < 9; i++) {
   const sudokuRow = sudokuTable.appendChild(document.createElement("tr"));
   for (let j = 0; j < 9; j++) {
-    const sudokuNumberBox = sudokuRow.appendChild(document.createElement("td"));
-    sudokuNumberBox.className = "sudoku-number-box";
-    sudokuNumberBox.appendChild(noteBox.cloneNode(true));
-    const cell = sudokuNumberBox.appendChild(document.createElement("span"));
-    cell.className = "sudoku-cell sudoku-cell--clue";
+    const box = sudokuRow.appendChild(document.createElement("td"));
+    box.className = "sudoku-number-box";
+    box.appendChild(noteBox.cloneNode(true));
+    const cell = box.appendChild(document.createElement("span"));
+    cell.classList.add("sudoku-cell");
+    cell.classList.add("reactive");
     const index = i * 9 + j;
     cell.dataset.sudokuCell = `${index}`;
-    const value = quiz[index] ? Math.log2(quiz[index]) + 1 : "\u00A0";
-    cell.textContent = `${value}`;
-    if (quiz[index]) cell.classList.add(`number-${value}`);
+    cells.push(cell);
   }
 }
 
@@ -153,6 +139,7 @@ const Control = (init: Partial<Control>): Control => {
   const { value = "", labelText = "", type = "radio", modifier } = init;
   const label = controlBox.appendChild(document.createElement("label"));
   label.classList.add("control-button");
+  label.classList.add("reactive");
   if (modifier) label.classList.add(`control-button--${modifier}`);
   const input = label.appendChild(document.createElement("input"));
   Object.assign(input, { type, name: `control-${type}`, value });
@@ -181,18 +168,21 @@ const controls: Control[] = [
     value: "CLEAR",
     modifier: "clear",
   }),
-  Control({
-    type: "radio",
-    labelText: "View (V)",
-    codes: "KeyV Minus NumpadDecimal",
-    value: "VIEW",
-    onChange: ({ input }: Control) => {
-      input.checked = true;
-      state.control = input.value;
-      wrapper.dataset.control = state.control;
-    },
-  }),
 ];
+
+const viewControl = Control({
+  type: "radio",
+  labelText: "View (V)",
+  codes: "KeyV Minus NumpadDecimal",
+  value: "VIEW",
+  onChange: ({ input }: Control) => {
+    input.checked = true;
+    state.control = input.value;
+    wrapper.dataset.control = state.control;
+  },
+});
+viewControl.input.checked = true;
+controls.push(viewControl);
 
 const noteModeControl = Control({
   type: "checkbox",
@@ -202,6 +192,19 @@ const noteModeControl = Control({
   onChange: toggleNoteMode,
 });
 controls.push(noteModeControl);
+
+const quiz = generate();
+
+let nClues = 0;
+for (let i = 0; i < 81; i++) {
+  const cell = cells[i];
+  const value = quiz[i] ? Math.log2(quiz[i]) + 1 : "\u00A0";
+  cell.textContent = `${value}`;
+  if (!quiz[i]) continue;
+  cell.classList.add("sudoku-cell--clue", `number-${value}`);
+  nClues++;
+}
+numCluesBox.textContent = `${nClues} clues`;
 
 const timeBegin = performance.now();
 const NN = (i = 0) => i.toString().slice(-2).padStart(2, "0");
@@ -255,50 +258,94 @@ window.addEventListener("click", (e) => {
   updateNoteMode();
   if (!(e.target instanceof HTMLSpanElement)) return;
   if (e.target.dataset.sudokuCell === undefined) return;
-  const index = Number(e.target.dataset.sudokuCell);
+  const cell = e.target;
+  const cellBox = cell.parentElement;
+  if (cellBox === null) return;
+
+  const index = Number(cell.dataset.sudokuCell);
   if (quiz[index]) {
     console.log(`Cell#${index} contains`, quiz[index]);
     return;
   }
+  const prev = cell.textContent;
+  let value = prev;
   const maybeNumber = parseInt(state.control);
   if (isFinite(maybeNumber)) {
     const number = maybeNumber;
     if (state.isNoteMode) {
-      e.target.parentElement
-        ?.querySelector(`.note-${number}`)
-        ?.classList.toggle("note");
+      const node = cellBox.querySelector(`.note-${number}`);
+      node?.classList.toggle("note");
     } else {
-      e.target.textContent =
-        e.target.textContent === state.control ? "\u00A0" : state.control;
+      value = value === state.control ? "\u00A0" : state.control;
     }
   } else if (state.control === "CLEAR") {
-    const isFilled = e.target.textContent !== "\u00A0";
+    const isFilled = value !== "\u00A0";
     if (state.isNoteMode !== isFilled) {
       if (state.isNoteMode) {
-        e.target.parentElement
-          ?.querySelectorAll(".note")
-          .forEach((e) => e.classList.remove("note"));
+        const nodeList = cellBox.querySelectorAll(".note");
+        nodeList?.forEach((e) => e.classList.remove("note"));
       } else {
-        e.target.textContent = "\u00a0";
+        value = "\u00a0";
       }
     }
   }
 
-  const isFilled = e.target.textContent !== "\u00A0";
-  e.target.className = isFilled
-    ? `sudoku-cell number-${e.target.textContent}`
-    : "sudoku-cell";
+  if (prev !== value) {
+    cell.textContent = value;
+    if (prev !== "\u00A0") cell.classList.remove(`number-${prev}`);
+    if (value !== "\u00A0") cell.classList.add(`number-${value}`);
+    const cnt = Array.from(Array(3), () => Array.from(Array(10)).fill(0));
+    const num = Number(cell.textContent);
+
+    const row = Math.trunc(index / 9);
+    const col = index % 9;
+    const block = Math.trunc(row / 3) * 3 + Math.trunc(col / 3);
+
+    for (let i = 0; i < 9; i++) {
+      cnt[0][Number(cells[row * 9 + i].textContent)]++;
+    }
+
+    for (let i = 0; i < 9; i++) {
+      cnt[1][Number(cells[i * 9 + col].textContent)]++;
+    }
+
+    const blockOffset = 9 * 3 * Math.trunc(block / 3) + 3 * (block % 3);
+    for (let i = 0; i < 9; i++) {
+      const index = blockOffset + 9 * Math.trunc(i / 3) + (i % 3);
+      cnt[2][Number(cells[index].textContent)]++;
+    }
+
+    for (let j = index * 20, e = j + 20; j < e; j++) {
+      const refCell = cells[relLUT[j]];
+      const num = Number(refCell.textContent);
+      const multioccur = cnt[0][num] > 1 || cnt[1][num] > 1 || cnt[2][num] > 1;
+      refCell.classList.toggle("error", num > 0 && multioccur);
+    }
+
+    const multioccur = cnt[0][num] > 1 || cnt[1][num] > 1 || cnt[2][num] > 1;
+    cell.classList.toggle("error", num > 0 && multioccur);
+
+    const nErrors = wrapper.querySelectorAll(".error").length;
+    const cellNums = cells.map((it) => Number(it.textContent));
+    const nFilled = cellNums.reduce((prev, it) => (it ? prev + 1 : prev), 0);
+
+    if (!nErrors && nFilled === 81) {
+      console.log("Congratulations!", { nErrors, nFilled });
+    } else {
+      console.log({ nErrors, nFilled });
+    }
+  }
 });
 
 window.addEventListener("pointerdown", (e) => {
-  if (!(e.target instanceof HTMLLabelElement)) return;
-  if (!e.target.classList.contains("control-button")) return;
+  if (!(e.target instanceof HTMLElement)) return;
+  if (!e.target.classList.contains("reactive")) return;
   const { target, pointerId } = e;
   const pointerup = (e: PointerEvent) => {
     if (e.pointerId !== pointerId) return;
-    target.classList.remove("control-button--active");
+    target.classList.remove("active");
     window.removeEventListener("pointerup", pointerup);
   };
-  target.classList.add("control-button--active");
+  target.classList.add("active");
   window.addEventListener("pointerup", pointerup);
 });
