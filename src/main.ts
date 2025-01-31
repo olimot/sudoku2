@@ -1,27 +1,6 @@
 import "./main.css";
 import { solve, dig, relLUT } from "./sudoku";
 
-function generate() {
-  let quiz = new Uint32Array(81);
-  let minClues = 81;
-  let i = 0;
-  for (let j = 0; j < 100; j++) {
-    const theQuiz = i++ ? new Uint32Array(81) : quiz;
-    solve(theQuiz);
-    dig(theQuiz, 0);
-    let nClues = 0;
-    for (let i = 0; i < 81; i++) if (theQuiz[i]) nClues++;
-    if (nClues >= minClues) continue;
-    minClues = nClues;
-    quiz = theQuiz;
-  }
-  const t = Math.round(performance.now());
-  console.log(
-    `# of clues: ${minClues}, # of iterations: ${i}, elapsed: ${t} ms`,
-  );
-  return quiz;
-}
-
 const wrapper = document.body.appendChild(document.createElement("div"));
 wrapper.className = "wrapper";
 
@@ -30,18 +9,18 @@ startBox.className = "start-box";
 
 const easierButton = startBox.appendChild(document.createElement("button"));
 easierButton.type = "button";
-easierButton.className = "easier-button";
+easierButton.className = "easier-button reactive";
 easierButton.disabled = true;
 easierButton.textContent = "◀";
 
 const startButton = startBox.appendChild(document.createElement("button"));
 startButton.type = "button";
-startButton.className = "start-button";
+startButton.className = "start-button reactive";
 startButton.textContent = "Start beginner's sudoku";
 
 const harderButton = startBox.appendChild(document.createElement("button"));
 harderButton.type = "button";
-harderButton.className = "harder-button";
+harderButton.className = "harder-button reactive";
 harderButton.textContent = "▶";
 
 const numCluesBox = wrapper.appendChild(document.createElement("div"));
@@ -49,37 +28,38 @@ numCluesBox.className = "num-clues-box";
 
 const timeBox = wrapper.appendChild(document.createElement("div"));
 timeBox.className = "time-box";
-const timeTextNode = timeBox.appendChild(document.createTextNode(""));
+const timeTextNode = timeBox.appendChild(document.createTextNode("00:00:00"));
 
 const restartButton = timeBox.appendChild(document.createElement("button"));
 restartButton.type = "button";
 restartButton.className = "restart-button";
 restartButton.textContent = "RESTART";
 
+const cells: HTMLElement[] = [];
+const noteBoxTemplate = Object.assign(document.createElement("span"), {
+  className: "note-box",
+});
+noteBoxTemplate.append(
+  ...Array.from(Array(9), (_, i) =>
+    Object.assign(document.createElement("sub"), {
+      className: `note-${i + 1}`,
+    }),
+  ),
+);
+const cellTemplate = document.createElement("span");
+cellTemplate.classList.add("sudoku-cell");
+cellTemplate.classList.add("reactive");
+
 const sudokuBox = wrapper.appendChild(document.createElement("div"));
 sudokuBox.className = "sudoku-box";
-
-const noteBox = document.createElement("span");
-noteBox.className = "note-box";
-for (let i = 0; i < 9; i++) {
-  const noteNumber = noteBox.appendChild(document.createElement("sub"));
-  noteNumber.classList.add(`note-${i + 1}`);
-}
-
 const sudokuTable = sudokuBox.appendChild(document.createElement("table"));
 sudokuTable.className = "sudoku-table";
-const cells: HTMLElement[] = [];
 for (let i = 0; i < 9; i++) {
   const sudokuRow = sudokuTable.appendChild(document.createElement("tr"));
   for (let j = 0; j < 9; j++) {
     const box = sudokuRow.appendChild(document.createElement("td"));
-    box.className = "sudoku-number-box";
-    box.appendChild(noteBox.cloneNode(true));
-    const cell = box.appendChild(document.createElement("span"));
-    cell.classList.add("sudoku-cell");
-    cell.classList.add("reactive");
-    const index = i * 9 + j;
-    cell.dataset.sudokuCell = `${index}`;
+    box.appendChild(noteBoxTemplate.cloneNode(true));
+    const cell = box.appendChild(cellTemplate.cloneNode(true)) as HTMLElement;
     cells.push(cell);
   }
 }
@@ -94,12 +74,79 @@ for (let i = 0; i < 3; i++) {
   }
 }
 
+const overlayScreen = sudokuBox.appendChild(document.createElement("div"));
+overlayScreen.className = "overlay-screen";
+overlayScreen.textContent = "Press start button above to play a game!";
+
+const levels: [number, string][] = [
+  [50, `beginner's`],
+  [36, `easy`],
+  [22, `hard`],
+  [17, "diabolical"],
+];
+
 const state = {
   noteFirst: false,
   ctrlKey: false,
   isNoteMode: false,
+  startLevel: 0,
   control: "VIEW",
+  timeBegin: 0,
 };
+
+easierButton.addEventListener("click", () => {
+  state.startLevel -= 1;
+  easierButton.disabled = state.startLevel < 1;
+  harderButton.disabled = state.startLevel > 2;
+  startButton.textContent = `Start ${levels[state.startLevel][1]} sudoku`;
+});
+
+harderButton.addEventListener("click", () => {
+  state.startLevel += 1;
+  easierButton.disabled = state.startLevel < 1;
+  harderButton.disabled = state.startLevel > 2;
+  startButton.textContent = `Start ${levels[state.startLevel][1]} sudoku`;
+});
+
+let quiz = new Uint32Array(81);
+
+startButton.addEventListener("click", () => {
+  let minClues = 81;
+  let i = 0;
+  for (let j = 0; j < 100; j++) {
+    const theQuiz = i++ ? new Uint32Array(81) : quiz;
+    solve(theQuiz);
+    dig(theQuiz, 0);
+    let nClues = 0;
+    for (let i = 0; i < 81; i++) if (theQuiz[i]) nClues++;
+    if (nClues >= minClues) continue;
+    minClues = nClues;
+    quiz = theQuiz;
+  }
+  state.timeBegin = performance.now();
+  const t = Math.round(state.timeBegin);
+  console.log(`# of iterations: ${i}, elapsed: ${t} ms`);
+
+  // const s17res = await fetch(new URL("./sudoku17.txt", import.meta.url));
+  // const s17text = await s17res.text();
+  // const sudoku17s = s17text
+  //   .split("\n")
+  //   .map((line) => Array.from(line, (n) => Number(n)));
+  // console.log(sudoku17s[0]);
+
+  overlayScreen.style.display = "none";
+  document.querySelectorAll(".note").forEach((e) => e.classList.remove("note"));
+  let nClues = 0;
+  for (let i = 0; i < 81; i++) {
+    const cell = cells[i];
+    const value = quiz[i] ? Math.log2(quiz[i]) + 1 : "\u00A0";
+    cell.textContent = `${value}`;
+    if (!quiz[i]) continue;
+    cell.classList.add("sudoku-cell--clue", `number-${value}`);
+    nClues++;
+  }
+  numCluesBox.textContent = `${nClues} clues`;
+});
 
 const updateNoteMode = () => {
   state.isNoteMode = state.noteFirst ? !state.ctrlKey : state.ctrlKey;
@@ -152,7 +199,7 @@ const Control = (init: Partial<Control>): Control => {
 type ControlHandler = (control: Control) => void;
 
 const controls: Control[] = [
-  ...[...Array(9).keys()].map((i) =>
+  ...Array.from(Array(9), (_, i) =>
     Control({
       type: "radio",
       labelText: `${i + 1}`,
@@ -161,14 +208,16 @@ const controls: Control[] = [
       modifier: "number",
     }),
   ),
-  Control({
-    type: "radio",
-    labelText: "Clear (c)",
-    codes: "KeyC Digit0 Numpad0",
-    value: "CLEAR",
-    modifier: "clear",
-  }),
 ];
+
+const clearControl = Control({
+  type: "radio",
+  labelText: "Clear (c)",
+  codes: "KeyC Digit0 Numpad0",
+  value: "CLEAR",
+  modifier: "clear",
+});
+controls.push(clearControl);
 
 const viewControl = Control({
   type: "radio",
@@ -193,24 +242,11 @@ const noteModeControl = Control({
 });
 controls.push(noteModeControl);
 
-const quiz = generate();
-
-let nClues = 0;
-for (let i = 0; i < 81; i++) {
-  const cell = cells[i];
-  const value = quiz[i] ? Math.log2(quiz[i]) + 1 : "\u00A0";
-  cell.textContent = `${value}`;
-  if (!quiz[i]) continue;
-  cell.classList.add("sudoku-cell--clue", `number-${value}`);
-  nClues++;
-}
-numCluesBox.textContent = `${nClues} clues`;
-
-const timeBegin = performance.now();
 const NN = (i = 0) => i.toString().slice(-2).padStart(2, "0");
 requestAnimationFrame(function callback(prev, time = prev) {
   requestAnimationFrame(callback.bind(null, time));
-  const elapsed = time - timeBegin;
+  if (state.timeBegin === 0) return;
+  const elapsed = time - state.timeBegin;
   const seconds = Math.trunc(elapsed / 1000) % 60;
   const minutes = Math.trunc(elapsed / 60000) % 60;
   const hours = Math.trunc(elapsed / 3600000) % 100;
@@ -257,16 +293,16 @@ window.addEventListener("click", (e) => {
   state.ctrlKey = e.ctrlKey;
   updateNoteMode();
   if (!(e.target instanceof HTMLSpanElement)) return;
-  if (e.target.dataset.sudokuCell === undefined) return;
+  const index = cells.indexOf(e.target);
+  if (index === -1) return;
   const cell = e.target;
   const cellBox = cell.parentElement;
   if (cellBox === null) return;
-
-  const index = Number(cell.dataset.sudokuCell);
   if (quiz[index]) {
     console.log(`Cell#${index} contains`, quiz[index]);
     return;
   }
+
   const prev = cell.textContent;
   let value = prev;
   const maybeNumber = parseInt(state.control);
@@ -330,7 +366,16 @@ window.addEventListener("click", (e) => {
     const nFilled = cellNums.reduce((prev, it) => (it ? prev + 1 : prev), 0);
 
     if (!nErrors && nFilled === 81) {
-      console.log("Congratulations!", { nErrors, nFilled });
+      overlayScreen.innerHTML = "";
+      const congratText = overlayScreen.appendChild(
+        document.createElement("div"),
+      );
+      congratText.textContent = "Congratulations!";
+      const congratTime = overlayScreen.appendChild(
+        document.createElement("div"),
+      );
+      congratTime.textContent = timeTextNode.textContent;
+      overlayScreen.removeAttribute("style");
     } else {
       console.log({ nErrors, nFilled });
     }

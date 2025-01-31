@@ -49,12 +49,14 @@
   color: #ffffff;
   font: inherit;
   user-select: none;
+  touch-action: none;
 }
 
 .start-box button:hover {
   background: #0077ff80;
 }
 
+.start-box button.active,
 .start-box button:active {
   background: #0077ff;
   color: #ffffff;
@@ -106,12 +108,20 @@
   text-align: center;
 }
 
-.sudoku-number-box {
+.sudoku-table td {
   border: 1px solid #35506f;
   padding: 0;
   width: 11.1111%;
   position: relative;
   background-color: #ffffff;
+}
+
+.sudoku-table td:has(:hover) {
+  background-color: #f0f0f0;
+}
+
+.sudoku-table td:has(.active) {
+  background-color: #e5f2ff;
 }
 
 .note-box {
@@ -166,21 +176,6 @@
   content: "9";
 }
 
-/* tr:where(:nth-child(6n + 1), :nth-child(6n + 2), :nth-child(6n + 3))
-  .sudoku-number-box:where(
-    :nth-child(6n + 4),
-    :nth-child(6n + 5),
-    :nth-child(6n + 6)
-  ),
-tr:where(:nth-child(6n + 4), :nth-child(6n + 5), :nth-child(6n + 6))
-  .sudoku-number-box:where(
-    :nth-child(6n + 1),
-    :nth-child(6n + 2),
-    :nth-child(6n + 3)
-  ) {
-  background-color: #f5f5f5;
-} */
-
 .sudoku-cell {
   display: flex;
   width: 100%;
@@ -212,16 +207,6 @@ tr:where(:nth-child(6n + 4), :nth-child(6n + 5), :nth-child(6n + 6))
 .sudoku-cell.number-8,
 .sudoku-cell.number-9 {
   background-color: inherit;
-}
-
-.sudoku-number-box.drag,
-.sudoku-number-box:hover {
-  background-color: #f0f0f0;
-}
-
-.sudoku-number-box.active,
-.sudoku-number-box:active {
-  background-color: #e5f2ff;
 }
 
 .sudoku-block-borders {
@@ -313,4 +298,20 @@ tr:where(:nth-child(6n + 4), :nth-child(6n + 5), :nth-child(6n + 6))
   position: absolute;
   top: 4px;
   left: 4px;
+}
+
+.overlay-screen {
+  font-size: calc(calc(min(var(--wrap-width), 100vw) - 20px) * 0.06);
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: #ffffffe0;
+  border: 0;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
 }
