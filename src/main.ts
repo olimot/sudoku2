@@ -58,7 +58,7 @@ for (let i = 0; i < 9; i++) {
   const sudokuRow = sudokuTable.appendChild(document.createElement("tr"));
   for (let j = 0; j < 9; j++) {
     const cellTD = sudokuRow.appendChild(document.createElement("td"));
-    cellTD.className = "reactive";
+    cellTD.className = "sudoku-cell reactive";
     cellTD.appendChild(noteBoxTemplate.cloneNode(true));
     const cell = cellTD.appendChild(cellTemplate.cloneNode(true));
     cells.push(cell as HTMLElement);
@@ -119,6 +119,7 @@ let quiz: Uint32Array | undefined;
 
 function updateNumberClassName() {
   const cellsByNums: HTMLElement[][] = Array.from(Array(10), () => []);
+  const haveNumsError: boolean[] = Array(10).fill(false);
   const ctrlNum = parseInt(state.control) || 0;
   for (let i = 0; i < 81; i++) {
     const cell = cells[i];
@@ -128,19 +129,21 @@ function updateNumberClassName() {
       for (let j = i * 20, e = j + 20; j < e && !isError; j++) {
         isError = num === Number(cells[relLUT[j]].textContent);
       }
-      if (!isError) cellsByNums[num].push(cell);
+      if (isError) haveNumsError[num] = true;
     }
-    const cellBox = cell.parentElement!;
-    cellBox.classList.toggle("error", isError);
-    cellBox.classList.toggle("in-control", ctrlNum !== 0 && ctrlNum === num);
+    cellsByNums[num].push(cell);
+    const cellTD = cell.parentElement!;
+    cellTD.classList.toggle("error", isError);
+    cellTD.classList.toggle("in-control", ctrlNum !== 0 && ctrlNum === num);
   }
 
   const numControls = document.querySelectorAll(".control-button--number");
   for (let i = 1; i < 10; i++) {
     const cellsByNum = cellsByNums[i];
-    const isComplete = cellsByNum.length === 9;
+    const isComplete = !haveNumsError[i] && cellsByNum.length === 9;
+    const cellComplete = ctrlNum === i && isComplete;
     for (let j = 0; j < cellsByNum.length; j++) {
-      cellsByNum[j].parentElement!.classList.toggle("complete", isComplete);
+      cellsByNum[j].parentElement!.classList.toggle("complete", cellComplete);
     }
     for (let j = 0; j < numControls.length; j++) {
       if (numControls[j].textContent !== `${i}`) continue;
@@ -348,12 +351,9 @@ window.addEventListener("click", (e) => {
 
   const prev = cell.textContent;
   let value = prev;
-  const maybeNumber = parseInt(state.control);
-  if (isFinite(maybeNumber)) {
-    const number = maybeNumber;
+  if (isFinite(parseInt(state.control))) {
     if (state.isNoteMode) {
-      const node = cellTD.querySelector(`.note-${number}`);
-      node?.classList.toggle("note");
+      cellTD.querySelector(`.note-${state.control}`)?.classList.toggle("note");
     } else {
       value = value === state.control ? "\u00A0" : state.control;
     }
@@ -362,7 +362,7 @@ window.addEventListener("click", (e) => {
     if (state.isNoteMode !== isFilled) {
       if (state.isNoteMode) {
         const nodeList = cellTD.querySelectorAll(".note");
-        nodeList?.forEach((e) => e.classList.remove("note"));
+        nodeList.forEach((it) => it.classList.remove("note"));
       } else {
         value = "\u00a0";
       }

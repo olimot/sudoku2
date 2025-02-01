@@ -116,7 +116,7 @@ a:active,
   text-align: center;
 }
 
-.sudoku-table td {
+.sudoku-cell {
   border: 1px solid #35506f;
   padding: 0;
   width: 11.1111%;
@@ -124,24 +124,24 @@ a:active,
   background-color: #ffffff;
 }
 
-.sudoku-table td.in-control {
+.sudoku-cell.in-control {
   background: #fff7cc;
 }
 
-.sudoku-table td.error {
+.sudoku-cell.complete {
+  background-color: #e5f2ff;
+}
+
+.sudoku-cell.error {
   background: #ffe5e5;
 }
 
-.sudoku-table td:hover {
+.sudoku-cell:hover {
   background-color: #f0f0f0;
 }
 
-.sudoku-table td.active {
+.sudoku-cell.active {
   background-color: #d0d0d0;
-}
-
-.sudoku-table td.in-control.complete {
-  background-color: #e5f2ff;
 }
 
 .note-box {
