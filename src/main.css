@@ -1,33 +1,35 @@
+:root {
+  font-family:
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    Roboto,
+    Oxygen,
+    Ubuntu,
+    Cantarell,
+    "Noto Sans",
+    "Open Sans",
+    "Helvetica Neue",
+    sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
 .wrapper {
   --wrap-width: 460px;
   max-width: var(--wrap-width);
   margin: 0 auto;
+}
+
+ul,
+ol {
+  padding-left: 1rem;
+}
+
+.game-box {
   display: grid;
   grid-template-columns: 1fr auto;
-}
-
-[data-control="1"] .sudoku-cell.number-1,
-[data-control="2"] .sudoku-cell.number-2,
-[data-control="3"] .sudoku-cell.number-3,
-[data-control="4"] .sudoku-cell.number-4,
-[data-control="5"] .sudoku-cell.number-5,
-[data-control="6"] .sudoku-cell.number-6,
-[data-control="7"] .sudoku-cell.number-7,
-[data-control="8"] .sudoku-cell.number-8,
-[data-control="9"] .sudoku-cell.number-9 {
-  background: #fff7cc;
-}
-
-[data-control="1"] .sudoku-cell.number-1.error,
-[data-control="2"] .sudoku-cell.number-2.error,
-[data-control="3"] .sudoku-cell.number-3.error,
-[data-control="4"] .sudoku-cell.number-4.error,
-[data-control="5"] .sudoku-cell.number-5.error,
-[data-control="6"] .sudoku-cell.number-6.error,
-[data-control="7"] .sudoku-cell.number-7.error,
-[data-control="8"] .sudoku-cell.number-8.error,
-[data-control="9"] .sudoku-cell.number-9.error {
-  background: #ffe5e5;
 }
 
 .start-box {
@@ -53,12 +55,12 @@
 }
 
 .start-box button:hover {
-  background: #0077ff80;
+  background: #00000040;
 }
 
 .start-box button.active,
 .start-box button:active {
-  background: #0077ff;
+  background: #000000;
   color: #ffffff;
 }
 
@@ -81,12 +83,18 @@
   margin: 0;
   font: inherit;
   background: none;
-  color: #0077ff;
   padding: 0 0.25em;
   text-decoration: underline;
   cursor: pointer;
 }
 
+a,
+.restart-button {
+  color: #0070ff;
+}
+
+a:active,
+.restart-button.active,
 .restart-button:active {
   color: #35506f;
 }
@@ -116,11 +124,23 @@
   background-color: #ffffff;
 }
 
-.sudoku-table td:has(:hover) {
+.sudoku-table td.in-control {
+  background: #fff7cc;
+}
+
+.sudoku-table td.error {
+  background: #ffe5e5;
+}
+
+.sudoku-table td:hover {
   background-color: #f0f0f0;
 }
 
-.sudoku-table td:has(.active) {
+.sudoku-table td.active {
+  background-color: #d0d0d0;
+}
+
+.sudoku-table td.in-control.complete {
   background-color: #e5f2ff;
 }
 
@@ -176,7 +196,7 @@
   content: "9";
 }
 
-.sudoku-cell {
+.number {
   display: flex;
   width: 100%;
   height: 100%;
@@ -190,22 +210,22 @@
   line-height: 1;
   position: relative;
   user-select: none;
-  color: #0077ff;
+  color: #0070ff;
 }
 
-.sudoku-cell--clue {
+.number--clue {
   color: #35506f;
 }
 
-.sudoku-cell.number-1,
-.sudoku-cell.number-2,
-.sudoku-cell.number-3,
-.sudoku-cell.number-4,
-.sudoku-cell.number-5,
-.sudoku-cell.number-6,
-.sudoku-cell.number-7,
-.sudoku-cell.number-8,
-.sudoku-cell.number-9 {
+.number--1,
+.number--2,
+.number--3,
+.number--4,
+.number--5,
+.number--6,
+.number--7,
+.number--8,
+.number--9 {
   background-color: inherit;
 }
 
@@ -267,16 +287,22 @@
   display: none;
 }
 
+.control-button.complete:hover,
 .control-button:hover {
-  background-color: #0077ff80;
+  background-color: #00000040;
 }
 
+.control-button.complete {
+  background-color: #0070ff;
+}
+
+.control-button.complete.active,
 .control-button.active,
 .control-button:active,
 .note-mode .control-button--number:has(:checked:active),
 .note-mode .control-button--clear:has(:checked:active),
 .control-button:has(:active) {
-  background-color: #0077ff;
+  background-color: #000000;
   color: #ffffff;
 }
 
@@ -305,7 +331,7 @@
 }
 
 .overlay-screen {
-  font-size: calc(calc(min(var(--wrap-width), 100vw) - 20px) * 0.06);
+  font-size: calc(calc(min(var(--wrap-width), 100vw) - 20px) * 0.05);
   position: absolute;
   top: 0;
   left: 0;
