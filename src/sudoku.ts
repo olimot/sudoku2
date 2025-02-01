@@ -48,6 +48,12 @@ export function mapSudokuToNumbers(table: Uint32Array) {
   return [...table.map((it) => (it ? Math.log2(it) + 1 : 0))];
 }
 
+export function mapNumbersToSudoku(table: Uint32Array, numbers: number[]) {
+  for (let i = 0; i < 81; i++) {
+    table[i] = numbers[i] && 1 << (numbers[i] - 1);
+  }
+}
+
 const arena = new Uint32Array(108).fill(511);
 const solverNote = arena.subarray(0, 27);
 const untested = arena.subarray(27);
@@ -122,6 +128,7 @@ export function dig(table: Uint32Array, minClues: number) {
     const j = Math.trunc(Math.random() * (i + 1));
     [queue[i], queue[j]] = [queue[j], queue[i]];
   }
+
   let nClues = 81;
   for (const i1 of queue) {
     const value = table[i1];
