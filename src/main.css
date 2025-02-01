@@ -259,6 +259,10 @@
   font-size: 20px;
 }
 
+.control-button--clear {
+  grid-column: 1/3;
+}
+
 .control-button input {
   display: none;
 }

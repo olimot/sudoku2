@@ -208,12 +208,12 @@ const Control = (init: Partial<Control>): Control => {
 type ControlHandler = (control: Control) => void;
 
 const controls: Control[] = [
-  ...Array.from(Array(9), (_, i) =>
+  ...["7", "8", "9", "4", "5", "6", "1", "2", "3"].map((value) =>
     Control({
       type: "radio",
-      labelText: `${i + 1}`,
-      codes: `Digit${i + 1} Numpad${i + 1}`,
-      value: `${i + 1}`,
+      labelText: value,
+      codes: `Digit${value} Numpad${value}`,
+      value,
       modifier: "number",
     }),
   ),
@@ -227,25 +227,12 @@ const clearControl = Control({
   modifier: "clear",
 });
 controls.push(clearControl);
-
-const viewControl = Control({
-  type: "radio",
-  labelText: "View (V)",
-  codes: "KeyV Minus NumpadDecimal",
-  value: "VIEW",
-  onChange: ({ input }: Control) => {
-    input.checked = true;
-    state.control = input.value;
-    wrapper.dataset.control = state.control;
-  },
-});
-viewControl.input.checked = true;
-controls.push(viewControl);
+clearControl.input.checked = true;
 
 const noteModeControl = Control({
   type: "checkbox",
   labelText: "Note (space)",
-  codes: "Space Equal NumpadEnter",
+  codes: "Space Minus NumpadDecimal",
   value: "NOTE",
   onChange: toggleNoteMode,
 });
