@@ -8,18 +8,16 @@ startBox.className = "start-box";
 
 const easierButton = startBox.appendChild(document.createElement("button"));
 easierButton.type = "button";
-easierButton.className = "easier-button button";
+easierButton.className = "easier-button";
 easierButton.disabled = true;
-easierButton.textContent = "◀";
 
 const startButton = startBox.appendChild(document.createElement("button"));
 startButton.type = "button";
-startButton.className = "start-button button";
+startButton.className = "start-button";
 
 const harderButton = startBox.appendChild(document.createElement("button"));
 harderButton.type = "button";
-harderButton.className = "harder-button button";
-harderButton.textContent = "▶";
+harderButton.className = "harder-button";
 
 const sudokuBox = gameBox.appendChild(document.createElement("div"));
 sudokuBox.className = "sudoku-box";
@@ -36,7 +34,7 @@ const timeTextNode = timeBox.appendChild(document.createTextNode("00:00:00"));
 
 const restartButton = timeBox.appendChild(document.createElement("button"));
 restartButton.type = "button";
-restartButton.className = "restart-button button";
+restartButton.className = "restart-button";
 restartButton.textContent = "Restart";
 
 const cells: HTMLElement[] = [];
@@ -46,9 +44,9 @@ sudokuTable.className = "sudoku-table";
 for (let i = 0; i < 9; i++) {
   const sudokuRow = sudokuTable.appendChild(document.createElement("tr"));
   for (let j = 0; j < 9; j++) {
-    const cellTD = sudokuRow.appendChild(document.createElement("td"));
-    cellTD.className = "sudoku-cell button";
-    cells.push(cellTD);
+    const cell = sudokuRow.appendChild(document.createElement("td"));
+    cell.className = "button";
+    cells.push(cell);
   }
 }
 
@@ -103,7 +101,7 @@ function startGame() {
   if (!document.querySelectorAll("[data-clue]").length) return;
   overlay.style.display = "none";
   timeBox.dataset.startTime = `${performance.now()}`;
-  document.querySelectorAll(".sudoku-cell span").forEach((it) => it.remove());
+  document.querySelectorAll(".sudoku-table span").forEach((it) => it.remove());
   for (const it of cells) delete it.dataset.value;
   updateNumberClassName();
 }
@@ -119,7 +117,7 @@ startButton.addEventListener("click", async () => {
     const cell = cells[i];
     const clue = puzzle[i] ? `${puzzle[i]}` : "";
     nClues += puzzle[i] && 1;
-    cell.className = `sudoku-cell button`;
+    cell.className = "button";
     if (clue) cell.dataset.clue = clue;
     else delete cell.dataset.clue;
   }
@@ -246,9 +244,11 @@ window.addEventListener("click", (e) => {
 window.addEventListener("pointerdown", (e) => {
   const actives: Element[] = [];
   for (const it of e.composedPath()) {
-    if (!(it instanceof Element) || !it.classList.contains("button")) continue;
-    it.classList.add("active");
-    actives.push(it);
+    if (!(it instanceof Element)) continue;
+    if (it instanceof HTMLButtonElement || it.classList.contains("button")) {
+      it.classList.add("active");
+      actives.push(it);
+    }
   }
   if (!actives.length) return;
   const { pointerId } = e;

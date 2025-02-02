@@ -34,9 +34,6 @@ button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-}
-
-.button {
   box-sizing: border-box;
   margin: 0;
   border: 0;
@@ -44,9 +41,14 @@ button {
   font: inherit;
   line-height: 1;
   text-align: center;
+}
+
+button,
+.button {
   user-select: none;
   touch-action: none;
   white-space: nowrap;
+  overflow: hidden;
 }
 
 .game-box {
@@ -86,6 +88,14 @@ button {
 .start-box button:disabled:active {
   background: #35506f;
   color: #ffffff80;
+}
+
+.easier-button::before {
+  content: "〈";
+}
+
+.harder-button::before {
+  content: "〉";
 }
 
 [data-level="0"] .start-button::before {
@@ -158,47 +168,44 @@ button {
   box-sizing: border-box;
 }
 
-.sudoku-cell {
+.sudoku-table td {
   border: 1px solid #35506f;
   padding: 0;
   width: 11.1111%;
   height: 11.1111%;
   position: relative;
   background-color: #ffffff;
-  overflow: hidden;
-  touch-action: none;
-  user-select: none;
 }
 
-.sudoku-cell:nth-child(3n + 4) {
+.sudoku-table td:nth-child(3n + 4) {
   border-left-width: var(--thick-border-width);
 }
 
-.sudoku-table :nth-child(3n + 4) .sudoku-cell {
+.sudoku-table tr:nth-child(3n + 4) td {
   border-top-width: var(--thick-border-width);
 }
 
-.sudoku-cell.in-control {
+.sudoku-table td.in-control {
   background: #fff7cc;
 }
 
-.sudoku-cell.complete {
+.sudoku-table td.complete {
   background-color: #e5f2ff;
 }
 
-.sudoku-cell.error {
+.sudoku-table td.error {
   background: #ffe5e5;
 }
 
-.sudoku-cell:hover {
+.sudoku-table td:hover {
   background-color: #f0f0f0;
 }
 
-.sudoku-cell.active {
+.sudoku-table td.active {
   background-color: #d0d0d0;
 }
 
-.sudoku-cell span {
+.sudoku-table span {
   position: absolute;
   left: 33.3333%;
   top: 33.3333%;
@@ -213,41 +220,41 @@ button {
   pointer-events: none;
 }
 
-.sudoku-cell span::after {
+.sudoku-table span::after {
   content: attr(data-value);
 }
 
-.sudoku-cell[data-value] span {
+.sudoku-table td[data-value] span {
   display: none;
 }
 
-.sudoku-cell span[data-value="1"],
-.sudoku-cell span[data-value="4"],
-.sudoku-cell span[data-value="7"] {
+.sudoku-table span[data-value="1"],
+.sudoku-table span[data-value="4"],
+.sudoku-table span[data-value="7"] {
   left: 0;
 }
 
-.sudoku-cell span[data-value="1"],
-.sudoku-cell span[data-value="2"],
-.sudoku-cell span[data-value="3"] {
+.sudoku-table span[data-value="1"],
+.sudoku-table span[data-value="2"],
+.sudoku-table span[data-value="3"] {
   top: 0;
 }
 
-.sudoku-cell span[data-value="3"],
-.sudoku-cell span[data-value="6"],
-.sudoku-cell span[data-value="9"] {
+.sudoku-table span[data-value="3"],
+.sudoku-table span[data-value="6"],
+.sudoku-table span[data-value="9"] {
   left: auto;
   right: 0;
 }
 
-.sudoku-cell span[data-value="7"],
-.sudoku-cell span[data-value="8"],
-.sudoku-cell span[data-value="9"] {
+.sudoku-table span[data-value="7"],
+.sudoku-table span[data-value="8"],
+.sudoku-table span[data-value="9"] {
   top: auto;
   bottom: 0;
 }
 
-.sudoku-cell::after {
+.sudoku-table td::after {
   position: absolute;
   top: 0;
   left: 0;
@@ -262,12 +269,12 @@ button {
   pointer-events: none;
 }
 
-.sudoku-cell[data-clue]::after {
+.sudoku-table td[data-clue]::after {
   content: attr(data-clue);
   color: #35506f;
 }
 
-.sudoku-cell[data-value]::after {
+.sudoku-table td[data-value]::after {
   content: attr(data-value);
 }
 
