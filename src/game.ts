@@ -5,6 +5,7 @@ gameBox.className = "game-box";
 
 const startBox = gameBox.appendChild(document.createElement("div"));
 startBox.className = "start-box";
+startBox.dataset.level = "0";
 
 const easierButton = startBox.appendChild(document.createElement("button"));
 easierButton.type = "button";
@@ -54,8 +55,6 @@ const overlay = sudokuBox.appendChild(document.createElement("div"));
 overlay.className = "overlay-screen";
 overlay.textContent = "Press start button above to play a game!";
 
-startBox.dataset.level = "0";
-
 function changeLevel(dLevel = 0) {
   const level = Number(startBox.dataset.level) + dLevel;
   startBox.dataset.level = `${level}`;
@@ -72,7 +71,7 @@ const getFilled = (it: HTMLElement) =>
 function updateNumberClassName() {
   const cellsByFilled: HTMLElement[][] = Array.from(Array(10), () => []);
   const isErrorByFilled: boolean[] = Array(10).fill(false);
-  const control = parseInt(controlBox.dataset.control ?? "");
+  const control = parseInt(controlBox.dataset.value ?? "");
   for (let i = 0; i < 81; i++) {
     const cell = cells[i];
     const filled = getFilled(cell);
@@ -91,7 +90,7 @@ function updateNumberClassName() {
     const isComplete = i > 0 && !isErrorByFilled[i] && cells.length === 9;
     const shouldHighlight = control === i && isComplete;
     for (const it of cells) it.classList.toggle("complete", shouldHighlight);
-    const button = document.querySelector(`.control-button[value="${i}"]`);
+    const button = document.querySelector(`.control-box button[value="${i}"]`);
     button?.classList.toggle("complete", isComplete);
     button?.classList.toggle("selected", control === i);
   }
@@ -128,32 +127,33 @@ startButton.addEventListener("click", async () => {
 
 const controlBox = gameBox.appendChild(document.createElement("form"));
 controlBox.className = "control-box";
+controlBox.dataset.value = "0";
+
 const toggleNoteMode = () => {
   if ("note" in controlBox.dataset) delete controlBox.dataset.note;
   else controlBox.dataset.note = "";
 };
+
 const onValueControlClick = (value: string) => {
-  controlBox.dataset.control = value;
+  controlBox.dataset.value = value;
   updateNumberClassName();
 };
-onValueControlClick("0");
 
 for (const value of ["7", "8", "9", "4", "5", "6", "1", "2", "3", "0"]) {
   const button = controlBox.appendChild(document.createElement("button"));
   button.type = "button";
-  button.className = `control-button button${value === "0" ? " selected" : ""}`;
   button.name = "value";
   button.value = value;
   button.textContent = value !== "0" ? value : "Clear";
   button.addEventListener("click", onValueControlClick.bind(null, value));
   if (value !== "0") button.dataset.codes = `Digit${value} Numpad${value}`;
   else button.dataset.codes = `Digit${value} Numpad${value} KeyC`;
+  if (value === controlBox.dataset.value) button.className = "selected";
 }
 
 const toggleNote = controlBox.appendChild(document.createElement("button"));
 toggleNote.type = "button";
-toggleNote.className = `control-button button`;
-toggleNote.name = "toggle-note";
+toggleNote.name = "toggle-notemode";
 toggleNote.textContent = "Toggle note";
 toggleNote.addEventListener("click", toggleNoteMode);
 toggleNote.dataset.codes = "Space Backquote Minus NumpadDecimal";
@@ -202,7 +202,7 @@ window.addEventListener("click", (e) => {
   const prev = Number(cell.dataset.value ?? "");
   let value = prev;
   const isNoteMode = "note" in controlBox.dataset;
-  const control = parseInt(controlBox.dataset.control ?? "");
+  const control = parseInt(controlBox.dataset.value ?? "");
   if (isFinite(control)) {
     if (!control && isNoteMode === !prev) {
       if (!isNoteMode) value = 0;
