@@ -1,3 +1,16 @@
+import {
+  andNoteBits,
+  createGameData,
+  fromBase64,
+  getInputs,
+  getNoteBits,
+  getPuzzle,
+  getTime,
+  orNoteBits,
+  setInput,
+  setTime,
+  toBase64,
+} from "./data";
 import { generate, relLUT } from "./sudoku";
 
 const gameBox = document.body.appendChild(document.createElement("div"));
@@ -31,7 +44,7 @@ numCluesBox.className = "num-clues-box";
 
 const timeBox = statBar.appendChild(document.createElement("div"));
 timeBox.className = "time-box";
-const timeTextNode = timeBox.appendChild(document.createTextNode("00:00:00"));
+timeBox.appendChild(document.createTextNode("00:00:00"));
 
 const restartButton = timeBox.appendChild(document.createElement("button"));
 restartButton.type = "button";
@@ -55,23 +68,46 @@ const overlay = sudokuBox.appendChild(document.createElement("div"));
 overlay.className = "overlay-screen";
 overlay.textContent = "Press start button above to play a game!";
 
-function changeLevel(dLevel = 0) {
-  const level = Number(startBox.dataset.level) + dLevel;
-  startBox.dataset.level = `${level}`;
-  easierButton.disabled = level < 1;
-  harderButton.disabled = level > 2;
+const controlBox = gameBox.appendChild(document.createElement("form"));
+controlBox.className = "control-box";
+controlBox.dataset.value = "0";
+
+for (const value of ["7", "8", "9", "4", "5", "6", "1", "2", "3", "0"]) {
+  const button = controlBox.appendChild(document.createElement("button"));
+  button.type = "button";
+  button.name = "value";
+  button.value = value;
+  button.textContent = value !== "0" ? value : "Clear";
+  if (value !== "0") button.dataset.codes = `Digit${value} Numpad${value}`;
+  else button.dataset.codes = `Digit${value} Numpad${value} KeyC`;
+  if (value === controlBox.dataset.value) button.className = "selected";
 }
 
-easierButton.addEventListener("click", () => changeLevel(-1));
-harderButton.addEventListener("click", () => changeLevel(+1));
+const toggleNote = controlBox.appendChild(document.createElement("button"));
+toggleNote.type = "button";
+toggleNote.name = "toggle-notemode";
+toggleNote.textContent = "Toggle note";
+toggleNote.dataset.codes = "Space Backquote Minus NumpadDecimal";
+
+function setPuzzle(puzzle: number[]) {
+  let nClues = 0;
+  for (let i = 0; i < 81; i++) {
+    const cell = cells[i];
+    const clue = puzzle[i] ? `${puzzle[i]}` : "";
+    nClues += puzzle[i] && 1;
+    cell.className = "button";
+    if (clue) cell.dataset.clue = clue;
+    else delete cell.dataset.clue;
+  }
+  document.querySelector(".num-clues-box")!.textContent = `${nClues} clues`;
+}
 
 const getFilled = (it: HTMLElement) =>
   Number(it.dataset.clue ?? it.dataset.value ?? "");
 
-function updateNumberClassName() {
+function updateNumberClassName(cells: HTMLElement[], control: number) {
   const cellsByFilled: HTMLElement[][] = Array.from(Array(10), () => []);
   const isErrorByFilled: boolean[] = Array(10).fill(false);
-  const control = parseInt(controlBox.dataset.value ?? "");
   for (let i = 0; i < 81; i++) {
     const cell = cells[i];
     const filled = getFilled(cell);
@@ -96,149 +132,182 @@ function updateNumberClassName() {
   }
 }
 
-function startGame() {
-  if (!document.querySelectorAll("[data-clue]").length) return;
-  overlay.style.display = "none";
-  timeBox.dataset.startTime = `${performance.now()}`;
-  document.querySelectorAll(".sudoku-table span").forEach((it) => it.remove());
-  for (const it of cells) delete it.dataset.value;
-  updateNumberClassName();
-}
-
-restartButton.addEventListener("click", startGame);
-
-startButton.addEventListener("click", async () => {
-  const levels = [50, 36, 21, 17];
-  const puzzle = await generate(levels[Number(startBox.dataset.level)]);
-
-  let nClues = 0;
-  for (let i = 0; i < 81; i++) {
-    const cell = cells[i];
-    const clue = puzzle[i] ? `${puzzle[i]}` : "";
-    nClues += puzzle[i] && 1;
-    cell.className = "button";
-    if (clue) cell.dataset.clue = clue;
-    else delete cell.dataset.clue;
-  }
-  numCluesBox.textContent = `${nClues} clues`;
-
-  startGame();
-});
-
-const controlBox = gameBox.appendChild(document.createElement("form"));
-controlBox.className = "control-box";
-controlBox.dataset.value = "0";
-
-const toggleNoteMode = () => {
-  if ("note" in controlBox.dataset) delete controlBox.dataset.note;
-  else controlBox.dataset.note = "";
-};
-
-const onValueControlClick = (value: string) => {
-  controlBox.dataset.value = value;
-  updateNumberClassName();
-};
-
-for (const value of ["7", "8", "9", "4", "5", "6", "1", "2", "3", "0"]) {
-  const button = controlBox.appendChild(document.createElement("button"));
-  button.type = "button";
-  button.name = "value";
-  button.value = value;
-  button.textContent = value !== "0" ? value : "Clear";
-  button.addEventListener("click", onValueControlClick.bind(null, value));
-  if (value !== "0") button.dataset.codes = `Digit${value} Numpad${value}`;
-  else button.dataset.codes = `Digit${value} Numpad${value} KeyC`;
-  if (value === controlBox.dataset.value) button.className = "selected";
-}
-
-const toggleNote = controlBox.appendChild(document.createElement("button"));
-toggleNote.type = "button";
-toggleNote.name = "toggle-notemode";
-toggleNote.textContent = "Toggle note";
-toggleNote.addEventListener("click", toggleNoteMode);
-toggleNote.dataset.codes = "Space Backquote Minus NumpadDecimal";
-
-requestAnimationFrame(function callback(prev, time = prev) {
-  requestAnimationFrame(callback.bind(null, time));
-  if (!("startTime" in timeBox.dataset)) return;
-  const elapsed = time - Number(timeBox.dataset.startTime);
+function getDurationText(elapsed: number) {
   const hms = [
     Math.trunc(elapsed / 3600000) % 100,
     Math.trunc(elapsed / 60000) % 60,
     Math.trunc(elapsed / 1000) % 60,
   ];
-  const text = hms.map((i) => i.toString().padStart(2, "0")).join(":");
+  return hms.map((i) => i.toString().padStart(2, "0")).join(":");
+}
+
+function checkComplete() {
+  const nErrors = document.querySelectorAll(".sudoku-table .error").length;
+  const filled = cells.map(getFilled);
+  const nFilled = filled.reduce((prev, it) => prev + (it && 1), 0);
+  if (!nErrors && nFilled === 81) {
+    const sudokuBox = document.querySelector(".sudoku-box")!;
+    const overlay = sudokuBox.appendChild(document.createElement("div"));
+    overlay.className = "overlay-screen";
+    const congratText = overlay.appendChild(document.createElement("div"));
+    congratText.textContent = "Congratulations!";
+    const congratTime = overlay.appendChild(document.createElement("div"));
+    const timeBox = document.querySelector<HTMLElement>(".time-box")!;
+    const timeTextNode = timeBox.childNodes[0];
+    congratTime.textContent = timeTextNode.textContent;
+    delete timeBox.dataset.startTime;
+  }
+}
+
+function resumeGame() {
+  const url = new URL(location.href);
+  const data = fromBase64(url.searchParams.get("data"));
+  if (!data.length) return;
+  setPuzzle(getPuzzle(data));
+  const elapsed = getTime(data);
+  timeBox.dataset.startTime = `${performance.now() - elapsed}`;
+  timeBox.childNodes[0].textContent = getDurationText(elapsed);
+  const inputs = getInputs(data);
+  const noteBits = getNoteBits(data);
+  const cells = [...document.querySelectorAll<HTMLElement>(".sudoku-table td")];
+  const notes = document.querySelectorAll(".sudoku-table span");
+  notes.forEach((it) => it.remove());
+  for (let i = 0; i < 81; i++) {
+    const cell = cells[i];
+    if (!inputs[i]) delete cell.dataset.value;
+    else cell.dataset.value = `${inputs[i]}`;
+    if (!noteBits[i]) continue;
+    for (let j = 0; j < 9; j++) {
+      if (!(noteBits[i] & (1 << j))) continue;
+      const noteSub = cell.appendChild(document.createElement("span"));
+      noteSub.dataset.value = `${j + 1}`;
+    }
+  }
+  const controlBox = document.querySelector<HTMLElement>(".control-box")!;
+  const control = Number(controlBox.dataset.value);
+  updateNumberClassName(cells, control);
+  document.querySelector(".overlay-screen")?.remove();
+  checkComplete();
+}
+
+function setGameURL(fn: (data: Uint8Array) => void) {
+  const url = new URL(location.href);
+  const data = fromBase64(url.searchParams.get("data"));
+  fn(data);
+  setTime(data, performance.now() - Number(timeBox.dataset.startTime));
+  url.searchParams.set("data", toBase64(data));
+  history.replaceState(null, "", url);
+}
+
+function startGame(cells: HTMLElement[], control: number) {
+  if (!document.querySelectorAll("[data-clue]").length) return;
+  const timeBox = document.querySelector<HTMLElement>(".time-box")!;
+  timeBox.dataset.startTime = `${performance.now()}`;
+  const notes = document.querySelectorAll(".sudoku-table span");
+  notes.forEach((it) => it.remove());
+  cells.forEach((it) => delete it.dataset.value);
+  const puzzle = cells.map((it) => Number(it.dataset.clue ?? 0));
+  const data = createGameData(puzzle);
+  const url = new URL(location.href);
+  url.searchParams.set("data", toBase64(data));
+  history.replaceState(null, "", url);
+  updateNumberClassName(cells, control);
+  document.querySelector(".overlay-screen")?.remove();
+}
+
+const getButtonByCode = <T extends Element>(code: string) =>
+  code ? document.querySelector<T>(`[data-codes~=${code}]`) : null;
+
+resumeGame();
+
+requestAnimationFrame(function callback(prev, time = prev) {
+  requestAnimationFrame(callback.bind(null, time));
+  const timeBox = document.querySelector<HTMLElement>(".time-box")!;
+  const timeTextNode = timeBox.childNodes[0];
+  if (!("startTime" in timeBox.dataset)) return;
+  const text = getDurationText(time - Number(timeBox.dataset.startTime));
   if (timeTextNode.textContent !== text) timeTextNode.textContent = text;
-});
-
-window.addEventListener("keydown", (e) => {
-  if (!e.code) return;
-  for (const control of document.querySelectorAll(".button[data-codes]")) {
-    if (!(control as HTMLElement).dataset.codes?.includes(e.code)) continue;
-    e.preventDefault();
-    control.classList.add("active");
-    return;
-  }
-  console.log("key:", e.key, "code:", e.code);
-});
-
-window.addEventListener("keyup", (e) => {
-  if (!e.code) return;
-  for (const control of document.querySelectorAll(".button[data-codes]")) {
-    if (!(control as HTMLElement).dataset.codes?.includes(e.code)) continue;
-    e.preventDefault();
-    control.classList.remove("active");
-    (control as HTMLButtonElement).click?.();
-    return;
-  }
 });
 
 window.addEventListener("click", (e) => {
   if (!(e.target instanceof HTMLElement)) return;
+  const startBox = document.querySelector<HTMLElement>(".start-box")!;
+  const easier = document.querySelector<HTMLButtonElement>(".easier-button")!;
+  const harder = document.querySelector<HTMLButtonElement>(".harder-button")!;
+  const cells = [...document.querySelectorAll<HTMLElement>(".sudoku-table td")];
+  const controlBox = document.querySelector<HTMLElement>(".control-box")!;
+  const isNoteMode = "note" in controlBox.dataset;
+  const control = Number(controlBox.dataset.value);
+
+  if (e.target === easier || e.target === harder) {
+    const dLevel = e.target === easier ? -1 : 1;
+    const level = Number(startBox.dataset.level) + dLevel;
+    startBox.dataset.level = `${level}`;
+    easier.disabled = level < 1;
+    harder.disabled = level > 2;
+    return;
+  }
+
+  let startP: Promise<void> | undefined;
+  if (e.target.classList.contains("restart-button")) {
+    startP = Promise.resolve();
+  } else if (e.target.classList.contains("start-button")) {
+    const level = [50, 36, 21, 17][Number(startBox.dataset.level)];
+    startP = generate(level).then(setPuzzle);
+  }
+  if (startP) return startP.then(startGame.bind(null, cells, control));
+
+  if (e.target.parentElement === controlBox) {
+    e.preventDefault();
+    switch ((e.target as HTMLButtonElement).name) {
+      case "value":
+        controlBox.dataset.value = (e.target as HTMLButtonElement).value;
+        updateNumberClassName(cells, Number(controlBox.dataset.value));
+        break;
+      case "toggle-notemode":
+        if (isNoteMode) delete controlBox.dataset.note;
+        else controlBox.dataset.note = "";
+        break;
+    }
+    return;
+  }
+
   const cell = e.target;
   const index = cells.indexOf(cell);
   if (index === -1 || "clue" in cell.dataset) return;
 
-  const prev = Number(cell.dataset.value ?? "");
-  let value = prev;
-  const isNoteMode = "note" in controlBox.dataset;
-  const control = parseInt(controlBox.dataset.value ?? "");
-  if (isFinite(control)) {
-    if (!control && isNoteMode === !prev) {
-      if (!isNoteMode) value = 0;
-      else cell.querySelectorAll("span").forEach((it) => it.remove());
-    } else if (isNoteMode && !prev) {
-      const prevNoteSub = cell.querySelector(`[data-value="${control}"]`);
-      if (prevNoteSub) {
-        prevNoteSub.remove();
-      } else {
-        const noteSub = cell.appendChild(document.createElement("span"));
-        noteSub.dataset.value = `${control}`;
-      }
-    } else if (!isNoteMode) {
-      value = prev === control ? 0 : control;
+  const prev = cell.dataset.value;
+  if (!control && isNoteMode === !prev) {
+    if (!isNoteMode) {
+      delete cell.dataset.value;
+      setGameURL((data) => setInput(data, index, 0));
+    } else {
+      cell.querySelectorAll("span").forEach((it) => it.remove());
+      setGameURL((data) => andNoteBits(data, index, 0));
+    }
+  } else if (isNoteMode && !prev) {
+    const prevNoteSub = cell.querySelector(`[data-value="${control}"]`);
+    if (prevNoteSub) {
+      prevNoteSub.remove();
+      setGameURL((data) => andNoteBits(data, index, ~(1 << (control - 1))));
+    } else {
+      const noteSub = cell.appendChild(document.createElement("span"));
+      noteSub.dataset.value = `${control}`;
+      setGameURL((data) => orNoteBits(data, index, 1 << (control - 1)));
+    }
+  } else if (control && !isNoteMode) {
+    if (prev === `${control}`) {
+      delete cell.dataset.value;
+      setGameURL((data) => setInput(data, index, 0));
+    } else {
+      cell.dataset.value = `${control}`;
+      setGameURL((data) => setInput(data, index, control));
     }
   }
 
-  if (prev !== value) {
-    if (value) cell.dataset.value = `${value}`;
-    else delete cell.dataset.value;
-
-    updateNumberClassName();
-
-    const nErrors = gameBox.querySelectorAll(".error").length;
-    const filled = cells.map(getFilled);
-    const nFilled = filled.reduce((prev, it) => prev + (it && 1), 0);
-    if (!nErrors && nFilled === 81) {
-      overlay.innerHTML = "";
-      const congratText = overlay.appendChild(document.createElement("div"));
-      congratText.textContent = "Congratulations!";
-      const congratTime = overlay.appendChild(document.createElement("div"));
-      congratTime.textContent = timeTextNode.textContent;
-      delete timeBox.dataset.startTime;
-      overlay.removeAttribute("style");
-    }
-  }
+  if (prev === cell.dataset.value) return;
+  updateNumberClassName(cells, control);
+  checkComplete();
 });
 
 window.addEventListener("pointerdown", (e) => {
@@ -258,4 +327,19 @@ window.addEventListener("pointerdown", (e) => {
     window.removeEventListener("pointerup", pointerup);
   };
   window.addEventListener("pointerup", pointerup);
+});
+
+window.addEventListener("keydown", (e) => {
+  const button = getButtonByCode<HTMLButtonElement>(e.code);
+  if (!button) return;
+  e.preventDefault();
+  button.classList.add("active");
+});
+
+window.addEventListener("keyup", (e) => {
+  const button = getButtonByCode<HTMLButtonElement>(e.code);
+  if (!button) return;
+  e.preventDefault();
+  button.classList.remove("active");
+  button.click?.();
 });
