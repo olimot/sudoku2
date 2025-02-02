@@ -69,18 +69,16 @@ button,
 }
 
 .start-box button {
-  background: #35506f;
+  background: hsl(210 40% 30%);
   color: #ffffff;
 }
 
 .start-box button:hover {
-  background: #00000040;
+  background-color: hsl(210 40% 25%);
 }
 
-.start-box button.active,
-.start-box button:active {
-  background: #000000;
-  color: #ffffff;
+.start-box button.active {
+  background-color: hsl(210 40% 20%);
 }
 
 .start-box button:disabled,
@@ -194,7 +192,7 @@ button,
 }
 
 .sudoku-table td.in-control {
-  background-color: hsl(50.59deg 100% 95%);
+  background-color: hsl(50.59deg 100% 90%);
 }
 
 .sudoku-table td.in-control:hover {
@@ -327,14 +325,14 @@ button,
   overflow: hidden;
   box-sizing: border-box;
   color: #ffffff;
-  background: #35506f;
+  background: hsl(210 40% 30%);
   gap: 1px;
-  border: 1px solid #35506f;
+  border: 1px solid hsl(210 40% 30%);
 }
 
 .control-box button {
   color: #ffffff;
-  background: #35506f;
+  background: hsl(210 40% 30%);
   position: relative;
   font: inherit;
 }
@@ -343,25 +341,53 @@ button,
   grid-column: 1/3;
 }
 
-.control-box button.complete:hover,
 .control-box button:hover {
-  color: #ffffff;
-  background-color: #00000040;
+  background-color: hsl(210 40% 25%);
+}
+
+.control-box button.active {
+  background-color: hsl(210 40% 20%);
 }
 
 .control-box button.complete {
-  background-color: #0070ff;
+  background-color: hsl(210 100% 50%);
+}
+
+.control-box button.complete:hover {
+  background-color: hsl(210 100% 40%);
+}
+
+.control-box button.complete.active {
+  background-color: hsl(210 100% 30%);
 }
 
 .control-box[data-note] button[name="toggle-notemode"],
 .control-box button.selected {
-  background-color: #ffd800;
+  background-color: hsl(50 100% 50%);
   color: #35506f;
+}
+
+.control-box[data-note] button[name="toggle-notemode"]:hover,
+.control-box button.selected:hover {
+  background-color: hsl(50 100% 47.5%);
+}
+
+.control-box[data-note] button[name="toggle-notemode"].active,
+.control-box button.selected.active {
+  background-color: hsl(50 100% 42.5%);
 }
 
 .control-box[data-note] button.selected {
   background-color: #ffffff;
   color: #35506f;
+}
+
+.control-box[data-note] button.selected:hover {
+  background-color: hsl(0 0% 92.5%);
+}
+
+.control-box[data-note] button.selected.active {
+  background-color: hsl(0 0% 87.5%);
 }
 
 .control-box[data-note] button.selected::after {
@@ -371,11 +397,4 @@ button,
   position: absolute;
   top: 4px;
   left: 4px;
-}
-
-.control-box button.active,
-.control-box button.complete.active,
-.control-box[data-note] button.active {
-  background-color: #000000;
-  color: #ffffff;
 }
