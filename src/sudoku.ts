@@ -165,3 +165,33 @@ export function parseSudokuCode(text: string) {
   }
   return table;
 }
+
+const s17sp = fetch(new URL("./s17s.txt", import.meta.url))
+  .then((res) => res.text())
+  .then((text) => text.split("\n").map((it) => Array.from(it, Number)));
+
+export async function generate(nTargetClues = 0) {
+  const game = new Uint8Array(81);
+  if (nTargetClues <= 17) {
+    const s17s = await s17sp;
+    const s17 = s17s[Math.trunc(s17s.length * Math.random())];
+    for (let i = 0; i < 81; i++) game[i] = s17[i];
+  } else {
+    let nMinClues = 81;
+    let i = 0;
+    const tmp = new Uint32Array(81);
+    const genStartTime = performance.now();
+    for (i = 0; i < 100 && nTargetClues < nMinClues; i++) {
+      solve(tmp.fill(0));
+      dig(tmp, nTargetClues);
+      let nClues = 0;
+      for (let j = 0; j < 81; j++) if (tmp[j]) nClues++;
+      if (nClues >= nMinClues) continue;
+      nMinClues = nClues;
+      for (let j = 0; j < 81; j++) game[j] = tmp[j] ? Math.log2(tmp[j]) + 1 : 0;
+    }
+    const t = Math.round(performance.now() - genStartTime);
+    console.log(`# of iterations: ${i}, elapsed: ${t} ms`);
+  }
+  return game;
+}
