@@ -185,24 +185,48 @@ button,
   border-top-width: var(--thick-border-width);
 }
 
-.sudoku-table td.in-control {
-  background: #fff7cc;
-}
-
-.sudoku-table td.complete {
-  background-color: #e5f2ff;
-}
-
-.sudoku-table td.error {
-  background: #ffe5e5;
-}
-
 .sudoku-table td:hover {
   background-color: #f0f0f0;
 }
 
 .sudoku-table td.active {
   background-color: #d0d0d0;
+}
+
+.sudoku-table td.in-control {
+  background-color: hsl(50.59deg 100% 95%);
+}
+
+.sudoku-table td.in-control:hover {
+  background-color: hsl(50.59deg 100% 85%);
+}
+
+.sudoku-table td.in-control.active {
+  background-color: hsl(50.59deg 100% 75%);
+}
+
+.sudoku-table td.complete {
+  background-color: hsl(210deg 100% 95%);
+}
+
+.sudoku-table td.complete:hover {
+  background-color: hsl(210deg 100% 85%);
+}
+
+.sudoku-table td.complete.active {
+  background-color: hsl(210deg 100% 75%);
+}
+
+.sudoku-table td.error {
+  background-color: hsl(0deg 100% 95%);
+}
+
+.sudoku-table td.error:hover {
+  background-color: hsl(0deg 100% 85%);
+}
+
+.sudoku-table td.error.active {
+  background-color: hsl(0deg 100% 75%);
 }
 
 .sudoku-table span {
