@@ -1,9 +1,7 @@
-import "./main.css";
 import { dig, relLUT, solve } from "./sudoku";
 
-const gameBox = document.createElement("div");
+const gameBox = document.body.appendChild(document.createElement("div"));
 gameBox.className = "game-box";
-document.querySelector(".wrapper")!.prepend(gameBox);
 
 const startBox = gameBox.appendChild(document.createElement("div"));
 startBox.className = "start-box";
@@ -138,10 +136,10 @@ function updateNumberClassName() {
   }
 
   const numControls = document.querySelectorAll(".control-button--number");
-  for (let i = 1; i < 10; i++) {
+  for (let i = 0; i < 10; i++) {
     const cellsByNum = cellsByNums[i];
     const isComplete = !haveNumsError[i] && cellsByNum.length === 9;
-    const cellComplete = ctrlNum === i && isComplete;
+    const cellComplete = i !== 0 && ctrlNum === i && isComplete;
     for (let j = 0; j < cellsByNum.length; j++) {
       cellsByNum[j].parentElement!.classList.toggle("complete", cellComplete);
     }
@@ -231,7 +229,6 @@ const defaultOnChange = ({ type, input }: Control) => {
   if (type === "radio" && input.checked) toggleNoteMode();
   input.checked = true;
   state.control = input.value;
-  gameBox.dataset.control = state.control;
   updateNumberClassName();
 };
 
@@ -269,7 +266,7 @@ for (const value of ["7", "8", "9", "4", "5", "6", "1", "2", "3"]) {
 
 const clearControl = Control({
   type: "radio",
-  labelText: "Clear (c)",
+  labelText: "Clear",
   codes: "KeyC Digit0 Numpad0",
   value: "CLEAR",
   modifier: "clear",
@@ -279,7 +276,7 @@ clearControl.input.checked = true;
 
 const noteModeControl = Control({
   type: "checkbox",
-  labelText: "Note (space)",
+  labelText: "Note",
   codes: "Space Minus NumpadDecimal",
   value: "NOTE",
   onChange() {
