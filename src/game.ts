@@ -11,7 +11,7 @@ import {
   setTime,
   toBase64,
 } from "./data";
-import { generate, relLUT } from "./sudoku";
+import { generatePuzzle, relLUT } from "./sudoku";
 
 const gameBox = document.body.appendChild(document.createElement("div"));
 gameBox.className = "game-box";
@@ -252,8 +252,8 @@ window.addEventListener("click", (e) => {
   if (e.target.classList.contains("restart-button")) {
     startP = Promise.resolve();
   } else if (e.target.classList.contains("start-button")) {
-    const level = [50, 36, 21, 17][Number(startBox.dataset.level)];
-    startP = generate(level).then(setPuzzle);
+    const level = [50, 36, 0, 17][Number(startBox.dataset.level)];
+    startP = generatePuzzle(level).then(setPuzzle);
   }
   if (startP) return startP.then(startGame.bind(null, cells, control));
 

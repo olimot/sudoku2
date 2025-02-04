@@ -1,4 +1,5 @@
 export const relLUT = new Uint8Array(81 * 20);
+
 const nr = new Uint8Array(81);
 const nc = new Uint8Array(81);
 const nb = new Uint8Array(81);
@@ -20,14 +21,13 @@ for (let i = 0; i < 81; i++) {
   relLUT.set(rel, i * 20);
 }
 
-export function erasePossible(note: Uint32Array, i: number, value: number) {
-  const notValue = ~value;
-  note[nr[i]] &= notValue;
-  note[nc[i]] &= notValue;
-  note[nb[i]] &= notValue;
+export function andNoteBits(note: Uint32Array, i: number, value: number) {
+  note[nr[i]] &= value;
+  note[nc[i]] &= value;
+  note[nb[i]] &= value;
 }
 
-export function addPossible(note: Uint32Array, i: number, value: number) {
+export function orNoteBits(note: Uint32Array, i: number, value: number) {
   note[nr[i]] |= value;
   note[nc[i]] |= value;
   note[nb[i]] |= value;
@@ -44,16 +44,6 @@ export function bitcnt(i: number) {
   return (((i + (i >> 4)) & 0x0f0f0f0f) * 0x01010101) >> 24;
 }
 
-export function mapSudokuToNumbers(table: Uint32Array) {
-  return [...table.map((it) => (it ? Math.log2(it) + 1 : 0))];
-}
-
-export function mapNumbersToSudoku(table: Uint32Array, numbers: number[]) {
-  for (let i = 0; i < 81; i++) {
-    table[i] = numbers[i] && 1 << (numbers[i] - 1);
-  }
-}
-
 const arena = new Uint32Array(108).fill(511);
 const solverNote = arena.subarray(0, 27);
 const untested = arena.subarray(27);
@@ -64,7 +54,7 @@ export function solve(table: Uint32Array) {
   for (let i = 0; i < 81; i++) if (!table[i]) holes.push(i);
   if (!holes.length) return true;
 
-  for (let i = 0; i < 81; i++) erasePossible(solverNote, i, table[i]);
+  for (let i = 0; i < 81; i++) andNoteBits(solverNote, i, ~table[i]);
 
   for (let h = 0, min = 9; h < holes.length; h++) {
     const i1 = holes[h];
@@ -79,8 +69,8 @@ export function solve(table: Uint32Array) {
     let ps = untested[i1] & getPossibles(solverNote, i1);
     let pcnt = bitcnt(ps);
     if (from !== -1) {
-      for (let j = from * 20, e = j + 20; j < e; j++) {
-        const i2 = relLUT[j];
+      for (let j = cursor; j < holes.length; j++) {
+        const i2 = holes[j];
         if (table[i2]) continue;
         const ps2 = untested[i2] & getPossibles(solverNote, i2);
         const pcnt2 = bitcnt(ps2);
@@ -88,23 +78,25 @@ export function solve(table: Uint32Array) {
         i1 = i2;
         ps = ps2;
         pcnt = pcnt2;
-        holes[holes.indexOf(i2)] = holes[cursor];
+        holes[j] = holes[cursor];
         holes[cursor] = i2;
       }
     }
 
     const prev = table[i1];
-    if (prev) addPossible(solverNote, i1, prev);
+    if (prev) orNoteBits(solverNote, i1, prev);
 
     if (ps !== 0) {
       let v = 1;
+      // while (!(ps & v) && v < 512) v <<= 1;
       for (let x = Math.trunc(pcnt * Math.random()); v < 512; v <<= 1, x -= 1) {
         if (!(ps & v)) continue;
         if (x <= 0) break;
       }
-      erasePossible(solverNote, i1, v);
+      const notV = ~v;
+      andNoteBits(solverNote, i1, notV);
       table[i1] = v;
-      untested[i1] &= ~v;
+      untested[i1] &= notV;
       from = i1;
       cursor += 1;
     } else {
@@ -118,82 +110,152 @@ export function solve(table: Uint32Array) {
   return cursor !== -1;
 }
 
-const diggerNote = new Uint32Array(27).fill(511);
-export function dig(table: Uint32Array, minClues: number) {
-  diggerNote.fill(511);
-  for (let i = 0; i < 81; i++) erasePossible(diggerNote, i, table[i]);
-
-  const queue = [...Array(81).keys()];
-  for (let i = queue.length - 1; i > 0; i--) {
-    const j = Math.trunc(Math.random() * (i + 1));
-    [queue[i], queue[j]] = [queue[j], queue[i]];
-  }
-
-  let nClues = 81;
-  for (const i1 of queue) {
-    const value = table[i1];
-    table[i1] = 0;
-    addPossible(diggerNote, i1, value);
-    const possibleOutcomes = getPossibles(diggerNote, i1);
-
-    let hasMultiSolution = false;
-    if (bitcnt(possibleOutcomes) !== 1) {
-      for (let v = 1; v < 512 && !hasMultiSolution; v <<= 1) {
-        if (!(possibleOutcomes & v) || v === value) continue;
-        table[i1] = v;
-        hasMultiSolution = solve(table.slice());
-      }
-    }
-
-    if (hasMultiSolution) {
-      table[i1] = value;
-      erasePossible(diggerNote, i1, value);
-    } else {
-      table[i1] = 0;
-    }
-
-    if (!hasMultiSolution && --nClues <= minClues) return;
+export function logPuzzle(table: number[]) {
+  for (let i = 0, out = ""; i < 81; i++) {
+    out += `${table[i] ? table[i] : "."}${i !== 80 ? " " : ""}`;
+    if (i !== 80 && i % 9 === 8) out += "\n";
+    else if (i !== 80 && i % 3 === 2) out += "| ";
+    if (i !== 80 && ((i + 1) / 9) % 3 === 0) out += "------+-------+------\n";
+    if (i === 80) console.log(out);
   }
 }
 
-export function parseSudokuCode(text: string) {
-  text = text.replace(/[^0-9]+/g, "");
-  const table = new Uint32Array(81);
-  for (let i = 0; i < 81; i++) {
-    const number = parseInt(text[i]) || 0;
-    table[i] = number ? 1 << (number - 1) : 0;
+const indicesInit = [...Array(81).keys()];
+const makerNote = new Uint32Array(27).fill(511);
+const makerTmp = new Uint32Array(81);
+export function reduceClues(
+  table: Uint32Array,
+  nTargetClues = 0,
+  indices = indicesInit,
+) {
+  makerNote.fill(511);
+  for (let i = 0; i < 81; i++) andNoteBits(makerNote, i, ~table[i]);
+  let nClues = 81;
+  outerLoop: for (const i1 of indices) {
+    const value = table[i1];
+    if (value) {
+      const alternatives = getPossibles(makerNote, i1) & ~value;
+      if (bitcnt(alternatives) > 0) {
+        for (let v = 1; v < 512; v <<= 1) {
+          if (!(alternatives & v)) continue;
+          makerTmp.set(table);
+          makerTmp[i1] = v;
+          if (solve(makerTmp)) continue outerLoop;
+        }
+      }
+      orNoteBits(makerNote, i1, value);
+      table[i1] = 0;
+    }
+    if (--nClues <= nTargetClues) return nClues;
   }
-  return table;
+  return nClues;
+}
+
+const uniqueNote = new Uint32Array(27);
+const uniqueTmp = new Uint32Array(81);
+export function checkUnique(table: Uint32Array) {
+  uniqueNote.fill(511);
+  for (let i = 0; i < 81; i++) andNoteBits(uniqueNote, i, ~table[i]);
+  for (let i1 = 0; i1 < 81; i1++) {
+    const value = table[i1];
+    if (value) continue;
+    const alternatives = getPossibles(uniqueNote, i1);
+    if (bitcnt(alternatives) < 2) continue;
+    let nAlts = 0;
+    for (let v = 1; v < 512; v <<= 1) {
+      if (!(alternatives & v)) continue;
+      uniqueTmp.set(table);
+      uniqueTmp[i1] = v;
+      if (solve(uniqueTmp) && ++nAlts > 1) return false;
+    }
+  }
+  return true;
+}
+
+export function debugLogPuzzle(table: Uint32Array) {
+  let out = "";
+  for (let i = 0; i < 81; i++) {
+    out += `${table[i] ? Math.log2(table[i]) + 1 : "."}${i !== 80 ? " " : ""}`;
+    if (i !== 80 && i % 9 === 8) out += "\n";
+    else if (i !== 80 && i % 3 === 2) out += "| ";
+    if (i !== 80 && ((i + 1) / 9) % 3 === 0) out += "------+-------+------\n";
+  }
+  console.log(out);
+}
+
+export function findMinimumPuzzle(table: Uint32Array) {
+  const solution = new Uint32Array(table);
+  solve(solution);
+  const initPuzzle = table.slice();
+  let nMinClues = reduceClues(initPuzzle);
+  console.log("Before finding minimum puzzle:", nMinClues);
+  const queue: Uint32Array[] = [initPuzzle];
+  let nIter = 0;
+  while (queue.length) {
+    nIter += 1;
+    const altTable = queue.shift()!;
+    console.log(`iteration#${nIter}`, queue.length, nMinClues);
+    let nextAltTable = altTable;
+    for (let i = 0; i < 81; i++) {
+      if (!altTable[i]) continue;
+      for (let j = 0; j < 81; j++) {
+        if (i === j || altTable[j]) continue;
+        const nextTable = new Uint32Array(altTable);
+        nextTable[i] = 0;
+        nextTable[j] = solution[j];
+        if (!checkUnique(nextTable)) continue;
+        const nClues = reduceClues(nextTable);
+        if (nClues < nMinClues) {
+          nextAltTable = nextTable;
+          nMinClues = nClues;
+        }
+      }
+    }
+    if (nextAltTable !== altTable) {
+      queue.push(nextAltTable);
+      table.set(nextAltTable);
+    }
+  }
 }
 
 const s17sp = fetch(new URL("./s17s.txt", import.meta.url))
   .then((res) => res.text())
   .then((text) => text.split("\n").map((it) => Array.from(it, Number)));
 
-export async function generate(nTargetClues = 0) {
-  const table = Array(81).fill(0);
-  if (nTargetClues <= 17) {
+export async function generatePuzzle(nTargetClues = 0) {
+  const puzzle = Array(81).fill(0);
+  if (nTargetClues === 17) {
     const s17s = await s17sp;
     const s17 = s17s[Math.trunc(s17s.length * Math.random())];
-    for (let i = 0; i < 81; i++) table[i] = s17[i];
+    for (let i = 0; i < 81; i++) puzzle[i] = s17[i];
   } else {
     let nMinClues = 81;
     let i = 0;
-    const tmp = new Uint32Array(81);
+
+    const min = new Uint32Array(81);
     const genStartTime = performance.now();
+    const queue = indicesInit.slice();
     for (i = 0; i < 100 && nTargetClues < nMinClues; i++) {
-      solve(tmp.fill(0));
-      dig(tmp, nTargetClues);
-      let nClues = 0;
-      for (let j = 0; j < 81; j++) if (tmp[j]) nClues++;
+      const tmp = new Uint32Array(81);
+      solve(tmp);
+      for (let i = queue.length - 1; i > 0; i--) {
+        const j = Math.trunc(Math.random() * (i + 1));
+        [queue[i], queue[j]] = [queue[j], queue[i]];
+      }
+      const nClues = reduceClues(tmp, nTargetClues, queue);
       if (nClues >= nMinClues) continue;
       nMinClues = nClues;
-      for (let j = 0; j < 81; j++) {
-        table[j] = tmp[j] ? Math.log2(tmp[j]) + 1 : 0;
-      }
+      min.set(tmp);
     }
+    console.log("nClues:", nMinClues);
+
+    if (nTargetClues === 0) {
+      solve(min.fill(0));
+      findMinimumPuzzle(min);
+    }
+    for (let j = 0; j < 81; j++) puzzle[j] = min[j] ? Math.log2(min[j]) + 1 : 0;
     const t = Math.round(performance.now() - genStartTime);
     console.log(`# of iterations: ${i}, elapsed: ${t} ms`);
   }
-  return table;
+  return puzzle;
 }
