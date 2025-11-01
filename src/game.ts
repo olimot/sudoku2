@@ -1,7 +1,7 @@
 import {
   andNoteBits,
   createGameData,
-  fromBase64,
+  decodeData,
   getInputs,
   getNoteBits,
   getPuzzle,
@@ -9,9 +9,10 @@ import {
   orNoteBits,
   setInput,
   setTime,
-  toBase64,
+  encodeData,
 } from "./data";
-import { generatePuzzle, relLUT } from "./sudoku";
+import GenerationWorker from "./generation-worker?worker";
+import { indicesInit, reduceClues, relLUT, solve } from "./sudoku";
 
 const gameBox = document.body.appendChild(document.createElement("div"));
 gameBox.className = "game-box";
@@ -99,7 +100,7 @@ function setPuzzle(puzzle: number[]) {
     if (clue) cell.dataset.clue = clue;
     else delete cell.dataset.clue;
   }
-  document.querySelector(".num-clues-box")!.textContent = `${nClues} clues`;
+  numCluesBox.textContent = `${nClues} clues`;
 }
 
 const getFilled = (it: HTMLElement) =>
@@ -159,9 +160,9 @@ function checkComplete() {
   }
 }
 
-function resumeGame() {
+async function resumeGame() {
   const url = new URL(location.href);
-  const data = fromBase64(url.searchParams.get("data"));
+  const data = await decodeData(url.searchParams.get("data"));
   if (!data.length) return;
   setPuzzle(getPuzzle(data));
   const elapsed = getTime(data);
@@ -190,16 +191,16 @@ function resumeGame() {
   checkComplete();
 }
 
-function setGameURL(fn: (data: Uint8Array) => void) {
+async function setGameURL(fn: (data: Uint8Array) => void) {
   const url = new URL(location.href);
-  const data = fromBase64(url.searchParams.get("data"));
+  const data = await decodeData(url.searchParams.get("data"));
   fn(data);
   setTime(data, performance.now() - Number(timeBox.dataset.startTime));
-  url.searchParams.set("data", toBase64(data));
+  url.searchParams.set("data", await encodeData(data));
   history.replaceState(null, "", url);
 }
 
-function startGame(cells: HTMLElement[], control: number) {
+async function startGame(cells: HTMLElement[], control: number) {
   if (!document.querySelectorAll("[data-clue]").length) return;
   const timeBox = document.querySelector<HTMLElement>(".time-box")!;
   timeBox.dataset.startTime = `${performance.now()}`;
@@ -209,7 +210,7 @@ function startGame(cells: HTMLElement[], control: number) {
   const puzzle = cells.map((it) => Number(it.dataset.clue ?? 0));
   const data = createGameData(puzzle);
   const url = new URL(location.href);
-  url.searchParams.set("data", toBase64(data));
+  url.searchParams.set("data", await encodeData(data));
   history.replaceState(null, "", url);
   updateNumberClassName(cells, control);
   document.querySelector(".overlay-screen")?.remove();
@@ -228,6 +229,49 @@ requestAnimationFrame(function callback(prev, time = prev) {
   const text = getDurationText(time - Number(timeBox.dataset.startTime));
   if (timeTextNode.textContent !== text) timeTextNode.textContent = text;
 });
+
+const s17sp = fetch(new URL("./s17s.txt", import.meta.url))
+  .then((res) => res.text())
+  .then((text) => text.split("\n").map((it) => Array.from(it, Number)));
+
+export async function generatePuzzle(nTargetClues = 0) {
+  let puzzle: number[] = Array(81).fill(0);
+  if (nTargetClues === 17) {
+    const s17s = await s17sp;
+    const s17 = s17s[Math.trunc(s17s.length * Math.random())];
+    for (let i = 0; i < 81; i++) puzzle[i] = s17[i];
+  } else if (nTargetClues === 0) {
+    puzzle = await new Promise<number[]>((resolve) => {
+      const worker = new GenerationWorker();
+      worker.onmessage = (e) => resolve(e.data);
+    });
+  } else {
+    let nMinClues = 81;
+    let i = 0;
+
+    const min = new Uint32Array(81);
+    const genStartTime = performance.now();
+    const queue = indicesInit.slice();
+    for (i = 0; i < 100 && nTargetClues < nMinClues; i++) {
+      const tmp = new Uint32Array(81);
+      solve(tmp);
+      for (let i = queue.length - 1; i > 0; i--) {
+        const j = Math.trunc(Math.random() * (i + 1));
+        [queue[i], queue[j]] = [queue[j], queue[i]];
+      }
+      const nClues = reduceClues(tmp, nTargetClues, queue);
+      if (nClues >= nMinClues) continue;
+      nMinClues = nClues;
+      min.set(tmp);
+    }
+    console.log("nClues:", nMinClues);
+
+    for (let j = 0; j < 81; j++) puzzle[j] = min[j] ? Math.log2(min[j]) + 1 : 0;
+    const t = Math.round(performance.now() - genStartTime);
+    console.log(`# of iterations: ${i}, elapsed: ${t} ms`);
+  }
+  return puzzle;
+}
 
 window.addEventListener("click", (e) => {
   if (!(e.target instanceof HTMLElement)) return;
@@ -252,8 +296,9 @@ window.addEventListener("click", (e) => {
   if (e.target.classList.contains("restart-button")) {
     startP = Promise.resolve();
   } else if (e.target.classList.contains("start-button")) {
-    const level = [50, 36, 0, 17][Number(startBox.dataset.level)];
-    startP = generatePuzzle(level).then(setPuzzle);
+    numCluesBox.textContent = "Generating...";
+    const nTargetClues = [50, 36, 0, 17][Number(startBox.dataset.level)];
+    startP = generatePuzzle(nTargetClues).then(setPuzzle);
   }
   if (startP) return startP.then(startGame.bind(null, cells, control));
 

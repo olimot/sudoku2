@@ -120,7 +120,7 @@ export function logPuzzle(table: number[]) {
   }
 }
 
-const indicesInit = [...Array(81).keys()];
+export const indicesInit = [...Array(81).keys()];
 const makerNote = new Uint32Array(27).fill(511);
 const makerTmp = new Uint32Array(81);
 export function reduceClues(
@@ -188,7 +188,6 @@ export function findMinimumPuzzle(table: Uint32Array) {
   solve(solution);
   const initPuzzle = table.slice();
   let nMinClues = reduceClues(initPuzzle);
-  console.log("Before finding minimum puzzle:", nMinClues);
   const queue: Uint32Array[] = [initPuzzle];
   let nIter = 0;
   while (queue.length) {
@@ -216,46 +215,4 @@ export function findMinimumPuzzle(table: Uint32Array) {
       table.set(nextAltTable);
     }
   }
-}
-
-const s17sp = fetch(new URL("./s17s.txt", import.meta.url))
-  .then((res) => res.text())
-  .then((text) => text.split("\n").map((it) => Array.from(it, Number)));
-
-export async function generatePuzzle(nTargetClues = 0) {
-  const puzzle = Array(81).fill(0);
-  if (nTargetClues === 17) {
-    const s17s = await s17sp;
-    const s17 = s17s[Math.trunc(s17s.length * Math.random())];
-    for (let i = 0; i < 81; i++) puzzle[i] = s17[i];
-  } else {
-    let nMinClues = 81;
-    let i = 0;
-
-    const min = new Uint32Array(81);
-    const genStartTime = performance.now();
-    const queue = indicesInit.slice();
-    for (i = 0; i < 100 && nTargetClues < nMinClues; i++) {
-      const tmp = new Uint32Array(81);
-      solve(tmp);
-      for (let i = queue.length - 1; i > 0; i--) {
-        const j = Math.trunc(Math.random() * (i + 1));
-        [queue[i], queue[j]] = [queue[j], queue[i]];
-      }
-      const nClues = reduceClues(tmp, nTargetClues, queue);
-      if (nClues >= nMinClues) continue;
-      nMinClues = nClues;
-      min.set(tmp);
-    }
-    console.log("nClues:", nMinClues);
-
-    if (nTargetClues === 0) {
-      solve(min.fill(0));
-      findMinimumPuzzle(min);
-    }
-    for (let j = 0; j < 81; j++) puzzle[j] = min[j] ? Math.log2(min[j]) + 1 : 0;
-    const t = Math.round(performance.now() - genStartTime);
-    console.log(`# of iterations: ${i}, elapsed: ${t} ms`);
-  }
-  return puzzle;
 }
